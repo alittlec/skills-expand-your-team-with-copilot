@@ -44,6 +44,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Authentication state
   let currentUser = null;
 
+  // Currently open share menu
+  let openShareMenu = null;
+
   // Time range mappings for the dropdown
   const timeRanges = {
     morning: { start: "06:00", end: "08:00" }, // Before school hours
@@ -568,6 +571,14 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <div class="share-container">
+          <button class="share-button" aria-label="Share this activity">🔗 Share</button>
+          <div class="share-menu hidden">
+            <a class="share-option share-twitter" href="#" target="_blank" rel="noopener noreferrer">𝕏 Twitter</a>
+            <a class="share-option share-facebook" href="#" target="_blank" rel="noopener noreferrer">📘 Facebook</a>
+            <button class="share-option share-copy">📋 Copy Link</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -586,6 +597,52 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Set up share button
+    const shareContainer = activityCard.querySelector(".share-container");
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareMenu = activityCard.querySelector(".share-menu");
+    const shareText = `Check out ${name} at Mergington High School! Schedule: ${formattedSchedule}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?activity=${encodeURIComponent(name)}`;
+
+    shareButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      // Close any previously open share menu
+      if (openShareMenu && openShareMenu !== shareMenu) {
+        openShareMenu.classList.add("hidden");
+      }
+      shareMenu.classList.toggle("hidden");
+      openShareMenu = shareMenu.classList.contains("hidden") ? null : shareMenu;
+    });
+
+    activityCard.querySelector(".share-twitter").href =
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+
+    activityCard.querySelector(".share-facebook").href =
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+
+    activityCard.querySelector(".share-copy").addEventListener("click", () => {
+      const copyBtn = activityCard.querySelector(".share-copy");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          copyBtn.textContent = "✅ Copied!";
+          setTimeout(() => {
+            copyBtn.textContent = "📋 Copy Link";
+          }, 2000);
+        }).catch(() => {
+          copyBtn.textContent = shareUrl;
+          setTimeout(() => {
+            copyBtn.textContent = "📋 Copy Link";
+          }, 3000);
+        });
+      } else {
+        // Fallback for browsers without clipboard API support
+        copyBtn.textContent = shareUrl;
+        setTimeout(() => {
+          copyBtn.textContent = "📋 Copy Link";
+        }, 3000);
+      }
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -639,6 +696,14 @@ document.addEventListener("DOMContentLoaded", () => {
       currentTimeRange = button.dataset.time;
       fetchActivities();
     });
+  });
+
+  // Close share menus when clicking outside
+  document.addEventListener("click", () => {
+    if (openShareMenu) {
+      openShareMenu.classList.add("hidden");
+      openShareMenu = null;
+    }
   });
 
   // Open registration modal
