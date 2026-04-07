@@ -44,6 +44,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Authentication state
   let currentUser = null;
 
+  // Currently open share menu
+  let openShareMenu = null;
+
   // Time range mappings for the dropdown
   const timeRanges = {
     morning: { start: "06:00", end: "08:00" }, // Before school hours
@@ -604,11 +607,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     shareButton.addEventListener("click", (event) => {
       event.stopPropagation();
-      // Close any other open share menus
-      document.querySelectorAll(".share-menu:not(.hidden)").forEach((menu) => {
-        if (menu !== shareMenu) menu.classList.add("hidden");
-      });
+      // Close any previously open share menu
+      if (openShareMenu && openShareMenu !== shareMenu) {
+        openShareMenu.classList.add("hidden");
+      }
       shareMenu.classList.toggle("hidden");
+      openShareMenu = shareMenu.classList.contains("hidden") ? null : shareMenu;
     });
 
     activityCard.querySelector(".share-twitter").href =
@@ -618,13 +622,26 @@ document.addEventListener("DOMContentLoaded", () => {
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
 
     activityCard.querySelector(".share-copy").addEventListener("click", () => {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        const copyBtn = activityCard.querySelector(".share-copy");
-        copyBtn.textContent = "✅ Copied!";
+      const copyBtn = activityCard.querySelector(".share-copy");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          copyBtn.textContent = "✅ Copied!";
+          setTimeout(() => {
+            copyBtn.textContent = "📋 Copy Link";
+          }, 2000);
+        }).catch(() => {
+          copyBtn.textContent = shareUrl;
+          setTimeout(() => {
+            copyBtn.textContent = "📋 Copy Link";
+          }, 3000);
+        });
+      } else {
+        // Fallback for browsers without clipboard API support
+        copyBtn.textContent = shareUrl;
         setTimeout(() => {
           copyBtn.textContent = "📋 Copy Link";
-        }, 2000);
-      });
+        }, 3000);
+      }
     });
 
     activitiesList.appendChild(activityCard);
@@ -683,9 +700,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Close share menus when clicking outside
   document.addEventListener("click", () => {
-    document.querySelectorAll(".share-menu:not(.hidden)").forEach((menu) => {
-      menu.classList.add("hidden");
-    });
+    if (openShareMenu) {
+      openShareMenu.classList.add("hidden");
+      openShareMenu = null;
+    }
   });
 
   // Open registration modal
